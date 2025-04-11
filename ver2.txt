@@ -1,0 +1,196 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.util.ArrayList;
+
+public class SpaceInvaders extends JPanel implements ActionListener, KeyListener {
+    Timer timer;
+    Player player;
+    ArrayList<Bullet> bullets = new ArrayList<>();
+    ArrayList<Enemy> enemies = new ArrayList<>();
+    boolean gameOver = false;
+    int score = 0;
+int stage = 1;
+double enemySpeed = 1.0;
+
+    public SpaceInvaders() {
+        setPreferredSize(new Dimension(1600, 1200));
+        setBackground(Color.BLACK);
+        setFocusable(true);
+        addKeyListener(this);
+
+        player = new Player(375, 500);
+
+        spawnEnemies();
+
+        timer = new Timer(15, this);
+        timer.start();
+    }
+
+    void spawnEnemies() {
+    Color enemyColor = Color.RED;
+    if (stage == 2) {
+        enemyColor = Color.GREEN;
+        enemySpeed = 1.25;
+    } else if (stage == 3) {
+        enemyColor = Color.BLUE;
+        enemySpeed = 1.5;
+    }
+
+    for (int i = 0; i < 5; i++) {
+        for (int j = 0; j < 10; j++) {
+            enemies.add(new Enemy(60 + j * 60, 50 + i * 40, enemySpeed, enemyColor));
+        }
+    }
+}
+
+    public void paintComponent(Graphics g) {
+    super.paintComponent(g);
+
+    // Draw score
+    g.setColor(Color.WHITE);
+    g.setFont(new Font("Arial", Font.PLAIN, 20));
+    g.drawString("Score: " + score, 20, 30);
+    g.drawString("Stage: " + stage, 700, 30);
+
+    if (gameOver) {
+        g.setColor(Color.RED);
+        g.setFont(new Font("Arial", Font.BOLD, 50));
+        g.drawString("Game Over", 270, 300);
+        return;
+    }
+
+    player.draw(g);
+    for (Bullet b : bullets) b.draw(g);
+    for (Enemy e : enemies) e.draw(g);
+}
+
+    public void actionPerformed(ActionEvent e) {
+        if (gameOver) return;
+
+        player.move();
+        bullets.forEach(Bullet::move);
+        bullets.removeIf(b -> b.y < 0);
+
+        for (Enemy enemy : enemies) {
+            enemy.move();
+            if (enemy.y > 500) gameOver = true;
+        }
+
+        for (int i = 0; i < bullets.size(); i++) {
+            Bullet b = bullets.get(i);
+            for (int j = 0; j < enemies.size(); j++) {
+                Enemy enemy = enemies.get(j);
+                if (b.getBounds().intersects(enemy.getBounds())) {
+                    bullets.remove(i);
+                    enemies.remove(j);
+                    score += 100;
+                    i--;
+                    break;
+                }
+            }
+        }
+        if (enemies.isEmpty() && stage < 3) {
+    stage++;
+    spawnEnemies();
+}
+
+        repaint();
+    }
+
+    public void keyPressed(KeyEvent e) {
+        int key = e.getKeyCode();
+        if (key == KeyEvent.VK_LEFT) player.dx = -5;
+        if (key == KeyEvent.VK_RIGHT) player.dx = 5;
+        if (key == KeyEvent.VK_SPACE) bullets.add(new Bullet(player.x + 15, player.y));
+    }
+
+    public void keyReleased(KeyEvent e) {
+        int key = e.getKeyCode();
+        if (key == KeyEvent.VK_LEFT || key == KeyEvent.VK_RIGHT) player.dx = 0;
+    }
+
+    public void keyTyped(KeyEvent e) {}
+
+    public static void main(String[] args) {
+        JFrame frame = new JFrame("Space Invaders");
+        SpaceInvaders game = new SpaceInvaders();
+        frame.add(game);
+        frame.pack();
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setVisible(true);
+    }
+
+    // === Inner Classes ===
+
+    class Player {
+        int x, y, dx;
+
+        Player(int x, int y) {
+            this.x = x;
+            this.y = y;
+        }
+
+        void move() {
+            x += dx;
+            x = Math.max(0, Math.min(770, x));
+        }
+
+        void draw(Graphics g) {
+            g.setColor(Color.GREEN);
+            g.fillRect(x, y, 30, 20);
+        }
+    }
+
+    class Bullet {
+        int x, y;
+
+        Bullet(int x, int y) {
+            this.x = x;
+            this.y = y;
+        }
+
+        void move() {
+            y -= 10;
+        }
+
+        void draw(Graphics g) {
+            g.setColor(Color.YELLOW);
+            g.fillRect(x, y, 5, 10);
+        }
+
+        Rectangle getBounds() {
+            return new Rectangle(x, y, 5, 10);
+        }
+    }
+
+    class Enemy {
+    int x, y;
+    double dx;
+    Color color;
+
+    Enemy(int x, int y, double speed, Color color) {
+        this.x = x;
+        this.y = y;
+        this.dx = speed;
+        this.color = color;
+    }
+
+    void move() {
+        x += dx;
+        if (x <= 0 || x >= 770) {
+            dx = -dx;
+            y += 20;
+        }
+    }
+
+    void draw(Graphics g) {
+        g.setColor(color);
+        g.fillRect(x, y, 30, 20);
+    }
+
+    Rectangle getBounds() {
+        return new Rectangle(x, y, 30, 20);
+    }
+}
+}
